@@ -110,6 +110,6 @@ web_server:
 
 wifi:
   ap:
-    ssid: "${name}"
+    ssid: "${ap_name}"
     password: ${ap_password}
 ...

@@ -14,13 +14,6 @@ substitutions:
   wifi_ssid: nspanel
   wifi_password: NSPanel_Blueprint
 
-##### External components #####
-external_components:
-  - source: github://pr#5586  # Remove this and update min ver when that PR is released
-    components:
-      - ota_http
-    refresh: 300s
-
 packages:
   core_package: !include ../esphome/nspanel_esphome_core.yaml
   upload_tft_package: !include ../esphome/nspanel_esphome_addon_upload_tft.yaml
@@ -31,12 +24,10 @@ api:
       variables:
         url: string
       then:
-        - ota_http.flash:
+        - ota.http_request.flash:
             md5_url: !lambda return fw_url->state + ".md5";
             url: !lambda return fw_url->state;
-        - lambda: |-
-            static const char *const TAG = "prebuilt.button.bt_firmware_update";
-            ESP_LOGE(TAG, "Firmware update failed!");
+        - lambda: ESP_LOGE("prebuilt.api.service.firmware_update", "Firmware update failed!");
 
 button:
   - name: Factory reset
@@ -49,46 +40,56 @@ button:
     platform: template
     on_press:
       then:
-        - ota_http.flash:
+        - ota.http_request.flash:
             md5_url: !lambda return fw_url->state + ".md5";
             url: !lambda return fw_url->state;
-        - lambda: |-
-            static const char *const TAG = "prebuilt.button.bt_firmware_update";
-            ESP_LOGE(TAG, "Firmware update failed!");
+        - lambda: ESP_LOGE("prebuilt.button.bt_firmware_update", "Firmware update failed!");
 
 captive_portal:
+  id: ap_captive_portal
 
 dashboard_import:
   package_import_url: github://Blackymas/NSPanel_HA_Blueprint/prebuilt/nspanel_esphome_prebuilt.yaml@main
   import_full_config: false
 
+esp32:
+  framework:
+    type: esp-idf
+    version: 4.4.8
+    platform_version: 5.4.0
+
+esp32_ble:
+  id: ble
+
 esp32_improv:
+  id: ble_improv
   authorizer: none
+
+esp32_ble_server:
+  id: ble_server
 
 esphome:
   name_add_mac_suffix: true
-  project:
-    name: esphome.NSPanel_HA_Blueprint
-    version: "${version}"
   platformio_options:
     build_flags:
       - -D NSPANEL_HA_BLUEPRINT_PREBUILT
 
+http_request:
+
 improv_serial:
+  id: serial_improv
 
 logger:
   baud_rate: 115200
 
 ota:
-  id: my_ota
-  password: !remove
-
-ota_http:
-  exclude_certificate_bundle: true
+  - id: !extend ota_std
+    password: !remove
+  - id: ota_web
+    platform: http_request
 
 select:
   - id: !extend tft_file_model
-    platform: template
     options:
       - "NSPanel Blank"
       - "NSPanel EU"
@@ -115,6 +116,11 @@ text:
         - lambda: |-
             ESP_LOGD("text.fw_url", "New Firmware URL set: %s", x.c_str());
 
+update:
+  - id: update_std
+    platform: http_request
+    name: Firmware Update
+    source: "https://raw.githubusercontent.com/Blackymas/NSPanel_HA_Blueprint/main/prebuilt/nspanel_esphome_prebuilt.manifest.json"
 
 wifi:
   networks: !remove

@@ -90,14 +90,17 @@ packages:
   remote_package:
     url: https://github.com/Blackymas/NSPanel_HA_Blueprint
     ref: main
+    refresh: 300s
     files:
       - nspanel_esphome.yaml # Basic package
       # Optional advanced and add-on configurations
       # - esphome/nspanel_esphome_advanced.yaml
-      # - nspanel_esphome_addon_climate_cool.yaml
-      - nspanel_esphome_addon_climate_heat.yaml
-      # - nspanel_esphome_addon_climate_dual.yaml
-    refresh: 300s
+      # - esphome/nspanel_esphome_addon_ble_tracker.yaml
+      # - esphome/nspanel_esphome_addon_bluetooth_proxy.yaml
+      # - esphome/nspanel_esphome_addon_climate_cool.yaml
+      # - esphome/nspanel_esphome_addon_climate_heat.yaml
+      # - esphome/nspanel_esphome_addon_climate_dual.yaml
+      # - esphome/nspanel_esphome_addon_cover.yaml
 ```
 
 ## Memory Management
@@ -147,7 +150,8 @@ captive_portal: !remove
 
 # Removes the OTA password
 ota:
-  password: !remove
+  - id: !extend ota_std
+    password: !remove
 ```
 
 > [!ATTENTION]
@@ -160,7 +164,7 @@ ota:
 ### API encryption
 > [!IMPORTANT]
 > Changing the API encryption can break the connection to Home Assistant,
-> requiring the device to be removed from integrations (**Settings** > **Devices & Services** > **ESPHome**) and then re-added.
+> requiring the device to be removed from integrations (**Settings** > **Devices & services** > **ESPHome**) and then re-added.
 
 This is highly recommended when you are transfer sensitive information between your panel and Home Assistant,
 as when you use your panel to enter the PIN for an Alarm Control Panel.
@@ -184,10 +188,10 @@ esphome:
     - priority: 601.0
       then:
         - lambda: |-
-            id(my_ota).set_auth_password("New password");
+            id(ota_std).set_auth_password("New password");
 ota:
-  password: !secret wifi_password
-  id: my_ota
+  - id: !extend ota_std
+    password: !secret wifi_password
 ```
 
 After flashing the device, you must remove the code above and replace it with the code below to start using this customization.
@@ -195,7 +199,8 @@ After flashing the device, you must remove the code above and replace it with th
 ```yaml
 # Use my global OTA password
 ota:
-  password: !secret ota_password
+  - id: !extend ota_std
+    password: !secret ota_password
 ```
 
 ### Web server credentials
@@ -380,7 +385,7 @@ button:
         - lambda: |-
             goto_page->execute("screensaver");
   
-  # Adds a button to wake-up the panel (similar to the existing service)
+  # Adds a button to wake-up the panel (similar to the existing action)
   - name: Wake-up
     id: force_wake_up
     platform: template
@@ -572,93 +577,11 @@ esp32:
     type: esp-idf
 ```
 
-### Bluetooth proxy
-<!-- markdownlint-disable MD028 -->
-> [!IMPORTANT]
-> The [ESP32 Platform](#framework-esp-idf) component should be configured to use the `esp-idf` framework,
-> as the `arduino` framework uses significantly more memory and performs poorly with the Bluetooth stack enabled.
-
-> [!IMPORTANT]
-> The Bluetooth stack significantly reduces device RAM.
-> Enabling this with additional customizations/components may lead to crashes due to low memory.
-> HTTPS connections might be erratic, and local TFT flashing could fail due to insufficient RAM.
->
-> Solutions include:
-> 1. Flash the device (remove Bluetooth components) while updating TFT.
-> 2. Flash from a local (HTTP) source at a low baud rate (9600 or lower) to avoid memory crashes. This method is slower.
-<!-- markdownlint-enable MD028 -->
-```yaml
-# Enable Bluetooth proxy
-bluetooth_proxy:
-  id: ble_proxy
-
-# Give an id for the BLE Tracker (which is part of BT proxy)
-esp32_ble_tracker:
-  id: ble_tracker
-
-# Modify upload tft engine to stop BLE scan while uploading
-script:
-  - id: !extend upload_tft
-    then:
-      - lambda: |-
-          static const char *const TAG = "CUSTOM.script.upload_tft";
-          ble_tracker->dump_config();
-          ESP_LOGD(TAG, "Stopping BLE Tracker scan...");
-          ble_tracker->stop_scan();
-          ESP_LOGD(TAG, "Disabling BLE Tracker scan...");
-          ble_tracker->set_scan_active(false);
-          ESP_LOGD(TAG, "State: %s", id(ble_proxy)->has_active() ? "Active" : "Passive");
-          while (ble_proxy->get_bluetooth_connections_limit() != ble_proxy->get_bluetooth_connections_free()) {
-            ESP_LOGD(TAG, "Connections: %i of %i", int(ble_proxy->get_bluetooth_connections_limit() - ble_proxy->get_bluetooth_connections_free()), int(ble_proxy->get_bluetooth_connections_limit()));
-            if (id(ble_proxy)->has_active()) {
-              ESP_LOGD(TAG, "Setting passive mode...");
-              ble_proxy->set_active(false);
-            }
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            App.feed_wdt();
-          }
-
-# Set Wi-Fi power save mode to "LIGHT" as required for Bluetooth on ESP32
-wifi:
-  power_save_mode: LIGHT
-```
+### Bluetooth Proxy
+Please refer to the "[Add-on: Bluetooth Proxy](addon_bluetooth_proxy.md)" guide.
 
 ### BLE Tracker
-<!-- markdownlint-disable MD028 -->
-> [!IMPORTANT]
-> The [ESP32 Platform](#framework-esp-idf) component should be configured to use the `esp-idf` framework,
-> as the `arduino` framework uses significantly more memory and performs poorly with the Bluetooth stack enabled.
-
-> [!IMPORTANT]
-> The Bluetooth stack significantly reduces device RAM.
-> Enabling this with additional customizations/components may lead to crashes due to low memory.
-> HTTPS connections might be erratic, and local TFT flashing could fail due to insufficient RAM.
->
-> Solutions include:
-> 1. Flash the device (remove Bluetooth components) while updating TFT.
-> 2. Flash from a local (HTTP) source at a low baud rate (9600 or lower) to avoid memory crashes. This method is slower.
-<!-- markdownlint-enable MD028 -->
-```yaml
-# Enable Bluetooth tracker
-esp32_ble_tracker:
-  id: ble_tracker
-
-# Modify upload tft engine to stop BLE tracker while uploading
-script:
-  - id: !extend upload_tft
-    then:
-      - lambda: |-
-          static const char *const TAG = "CUSTOM.script.upload_tft";
-          ble_tracker->dump_config();
-          ESP_LOGI(TAG, "Stopping BLE Tracker scan...");
-          ble_tracker->stop_scan();
-          ESP_LOGI(TAG, "Disabling BLE Tracker scan...");
-          ble_tracker->set_scan_active(false);
-
-# Set Wi-Fi power save mode to "LIGHT" as required for Bluetooth on ESP32
-wifi:
-  power_save_mode: LIGHT
-```
+Please refer to the "[Add-on: BLE Tracker Proxy](addon_ble_tracker.md)" guide.
 
 ### Logger via UART
 

@@ -129,9 +129,12 @@ Follow these steps to add a new device in the ESPHome Dashboard:
          - nspanel_esphome.yaml # Basic package
          # Optional advanced and add-on configurations
          # - esphome/nspanel_esphome_advanced.yaml
-         # - nspanel_esphome_addon_climate_cool.yaml
-         # - nspanel_esphome_addon_climate_heat.yaml
-         # - nspanel_esphome_addon_climate_dual.yaml
+         # - esphome/nspanel_esphome_addon_ble_tracker.yaml
+         # - esphome/nspanel_esphome_addon_bluetooth_proxy.yaml
+         # - esphome/nspanel_esphome_addon_climate_cool.yaml
+         - esphome/nspanel_esphome_addon_climate_heat.yaml
+         # - esphome/nspanel_esphome_addon_climate_dual.yaml
+         # - esphome/nspanel_esphome_addon_cover.yaml
    ```
 
    ![YAML Code](pics/ha_esphome_dashboard_new_device_06.png)
@@ -207,6 +210,7 @@ This connection is necessary to put the ESP32 into firmware transfer mode.
 Using a voltage higher than 3.3VDC, such as 5VDC, can damage your panel.
 4. To avoid short circuits, consider moving the panel's board away from the metal backing of the display.
 The use of a non-conductive tool, like the blue plastic one shown in the picture, can be helpful.
+![114730547 MP](https://github.com/Blackymas/NSPanel_HA_Blueprint/assets/5879533/575bc3de-a2ae-4440-a420-751325e55122)
 5. Note the cross-connection of `RX` and `TX` pins.
     The following pin-out should be used:
     <!-- markdownlint-disable MD033 -->
@@ -233,16 +237,20 @@ After ensuring your device is properly connected, proceed to update or install t
    - If you're **updating** your panel, the **Wirelessly** option is typically the right choice.
    This method will compile and transfer the firmware directly to your panel over Wi-Fi.
    - For **initial installations** or updates via a USB-to-Serial TTL adapter, select either **Plug into this computer** or **Manual download**.
-   Both these options will compile the firmware and prompt you to download it to your computer.
+   Both these options will compile the firmware and allow you to download it to your computer.
+   ![140043](https://github.com/Blackymas/NSPanel_HA_Blueprint/assets/5879533/3c08d3b7-df9b-4862-8ced-347deff41cb5)
+
 
 4. **Transfer Firmware via USB-to-Serial TTL:**
    - Navigate to [ESPHome Web](https://web.esphome.io/) on your computer.
    - Click **Connect** and choose the serial interface connected to your USB-to-Serial TTL adapter.
+     ![141609](https://github.com/Blackymas/NSPanel_HA_Blueprint/assets/5879533/fde27c26-3434-48f5-a028-6baee15ab35e)
 
-     ![ESPHome Web Interface](pics/esphome_web_home.png)
 
    - Once connected, opt to install an existing firmware to your panel.
    Select the compiled firmware file and initiate the installation.
+   ![141248](https://github.com/Blackymas/NSPanel_HA_Blueprint/assets/5879533/ad6a5813-131c-43d5-9174-3a9f73d5b6bf)
+
 
 The firmware installation process will take a few minutes.
 After completion, reassemble your panel and mount it back on the wall.
@@ -256,7 +264,7 @@ If that isn't happnening, you can manually add it as a new intgration with the f
 > to go directly to the dialog to add a new ESPHome device,
 > then you can go directly to step 3.
 
-1. Go to your [ESPHome integration's page](https://my.home-assistant.io/redirect/integration/?domain=esphome) under **Settings** > **Devices & Services** > **ESPHome**.
+1. Go to your [ESPHome integration's page](https://my.home-assistant.io/redirect/integration/?domain=esphome) under **Settings** > **Devices & services** > **ESPHome**.
 2. If your panel is automatically discovered, just click **Configure**, otherwise, click on **Add device**.
 3. Enter your new panel's hostname or IP address and click **Next**.
 4. Follow the instructions from your Home Assistant to add your new panel.
@@ -426,7 +434,7 @@ For homes with multiple panels:
 
 1. Repeat the steps in the "Blueprint" section for each panel.
 
-2. Ensure each panel has a unique entry in the ESPHome Dashboard and in Home Assistant under **Settings** → **Devices & Services** → **ESPHome**.
+2. Ensure each panel has a unique entry in the ESPHome Dashboard and in Home Assistant under **Settings** → **Devices & services** → **ESPHome**.
 
 3. Create a separate automation for each panel in Home Assistant.
 
